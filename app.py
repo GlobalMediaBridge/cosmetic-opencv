@@ -3,6 +3,15 @@ import cv2
 
 cap = cv2.VideoCapture(0)
 
+if not cap.isOpened():
+    raise IOError("Cannot open webcam")
+
+cur_char = -1
+prev_char = -1
+
+reading = False
+code = ''
+
 while(True):
     ret, frame = cap.read()
 
@@ -21,9 +30,36 @@ while(True):
     cv2.setWindowProperty(
         "frame", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     '''
-    cv2.imshow('frame', frame)
-    if cv2.waitKey(1) & 0xff == ord('q'):  # q버튼을 누르면 영상 꺼짐
+
+    c = cv2.waitKey(1)
+    if c == 27:
         break
+    if c > -1:
+        if reading == False:
+            code = ''
+        if c == 13:
+            reading = False
+        else:
+            reading = True
+            code += chr(c)
+            cur_char = c
+
+    prev_char = c
+
+    if cur_char == ord('g'):
+        output = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    elif cur_char == ord('y'):
+        output = cv2.cvtColor(frame, cv2.COLOR_BGR2YUV)
+    elif cur_char == ord('h'):
+        output = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    else:
+        output = frame
+
+    if reading == False:
+        cv2.putText(frame, code, (10, 20), font,
+                    0.5, (255, 255, 255), 2, cv2.LINE_AA)
+    cv2.imshow('frame', output)
+
 
 cap.release()
 cv2.destroyAllWindows()
