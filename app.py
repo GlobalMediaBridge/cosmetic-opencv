@@ -1,65 +1,147 @@
-import numpy as np
+import sys
+from os import path
+
 import cv2
+import numpy as np
 
-cap = cv2.VideoCapture(0)
+from PyQt5 import QtCore
+from PyQt5 import QtWidgets
+from PyQt5 import QtGui
 
-if not cap.isOpened():
-    raise IOError("Cannot open webcam")
 
-cur_char = -1
-prev_char = -1
+class RecordVideo(QtCore.QObject):
+    image_data = QtCore.pyqtSignal(np.ndarray)
 
-reading = False
-code = ''
+    def __init__(self, camera_port=0, parent=None):
+        super().__init__(parent)
+        self.camera = cv2.VideoCapture(camera_port)
 
-while(True):
-    ret, frame = cap.read()
+        self.timer = QtCore.QBasicTimer()
 
-    # 5px 짜리 직선그리기 (시작점),(끝점),(색상),크기
-    frame = cv2.line(frame, (0, 0), (511, 511), (255, 0, 0), 5)
-    # 3px 짜리 사각형 그리기 (시작점),(다음점),(색상),크기
-    frame = cv2.rectangle(frame, (384, 0), (510, 128), (0, 255, 0), 3)
-    # 꽉찬 원그리기 (중심점),반지름(색상),채우냐 마냐 -1 = 채우기 1 = 채우기x
-    frame = cv2.circle(frame, (447, 63), 63, (0, 0, 255), -1)  # 원그리기
-    # 글자쓰기
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    cv2.putText(frame, 'OpenCV', (10, 500), font,
-                4, (255, 255, 255), 2, cv2.LINE_AA)
-    ''' 전체화면
-    cv2.namedWindow("frame", cv2.WND_PROP_FULLSCREEN)
-    cv2.setWindowProperty(
-        "frame", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-    '''
+    def start_recording(self):
+        self.timer.start(0, self)
 
-    c = cv2.waitKey(1)
-    if c == 27:
-        break
-    if c > -1:
-        if reading == False:
-            code = ''
-        if c == 13:
-            reading = False
+    def timerEvent(self, event):
+        if (event.timerId() != self.timer.timerId()):
+            return
+
+        read, data = self.camera.read()
+        if read:
+            self.image_data.emit(data)
+
+
+class FaceDetectionWidget(QtWidgets.QWidget):
+    def __init__(self, haar_cascade_filepath, parent=None):
+        super().__init__(parent)
+        self.classifier = cv2.CascadeClassifier(haar_cascade_filepath)
+        self.image = QtGui.QImage()
+        self._red = (0, 0, 255)
+        self._width = 2
+        self._min_size = (30, 30)
+
+    def detect_faces(self, image: np.ndarray):
+        # haarclassifiers work better in black and white
+        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray_image = cv2.equalizeHist(gray_image)
+
+        faces = self.classifier.detectMultiScale(gray_image,
+                                                 scaleFactor=1.3,
+                                                 minNeighbors=4,
+                                                 flags=cv2.CASCADE_SCALE_IMAGE,
+                                                 minSize=self._min_size)
+
+        return faces
+
+    def image_data_slot(self, image_data):
+        faces = self.detect_faces(image_data)
+        for (x, y, w, h) in faces:
+            cv2.rectangle(image_data,
+                          (x, y),
+                          (x+w, y+h),
+                          self._red,
+                          self._width)
+
+        self.image = self.get_qimage(image_data)
+        if self.image.size() != self.size():
+            self.setFixedSize(self.image.size())
+
+        self.update()
+
+    def get_qimage(self, image: np.ndarray):
+        height, width, colors = image.shape
+        bytesPerLine = 3 * width
+        QImage = QtGui.QImage
+
+        image = QImage(image.data,
+                       width,
+                       height,
+                       bytesPerLine,
+                       QImage.Format_RGB888)
+
+        image = image.rgbSwapped()
+        return image
+
+    def paintEvent(self, event):
+        painter = QtGui.QPainter(self)
+        painter.drawImage(0, 0, self.image)
+        self.image = QtGui.QImage()
+
+
+class MainWidget(QtWidgets.QWidget):
+    def __init__(self, haarcascade_filepath, parent=None):
+        super().__init__(parent)
+        self.reading = False
+
+        self.initUI()
+        fp = haarcascade_filepath
+        self.face_detection_widget = FaceDetectionWidget(fp)
+
+        # TODO: set video port
+        self.record_video = RecordVideo()
+
+        image_data_slot = self.face_detection_widget.image_data_slot
+        self.record_video.image_data.connect(image_data_slot)
+
+        layout = QtWidgets.QVBoxLayout()
+
+        layout.addWidget(self.face_detection_widget)
+        self.run_button = QtWidgets.QPushButton('Start')
+        layout.addWidget(self.run_button)
+
+        self.run_button.clicked.connect(self.record_video.start_recording)
+        self.setLayout(layout)
+
+    def initUI(self):
+        self.setWindowTitle('My First Application')
+        self.move(300, 300)
+        self.resize(400, 200)
+
+    def keyPressEvent(self, e):
+        if self.reading == False:
+            self.code = ''
+        if e.key() == QtCore.Qt.Key_Return:
+            self.reading = False
         else:
-            reading = True
-            code += chr(c)
-            cur_char = c
-
-    prev_char = c
-
-    if cur_char == ord('g'):
-        output = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    elif cur_char == ord('y'):
-        output = cv2.cvtColor(frame, cv2.COLOR_BGR2YUV)
-    elif cur_char == ord('h'):
-        output = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    else:
-        output = frame
-
-    if reading == False:
-        cv2.putText(frame, code, (10, 20), font,
-                    0.5, (255, 255, 255), 2, cv2.LINE_AA)
-    cv2.imshow('frame', output)
+            self.code += chr(e.key())
+            self.reading = True
+        print(self.code)
 
 
-cap.release()
-cv2.destroyAllWindows()
+def main(haar_cascade_filepath):
+    app = QtWidgets.QApplication(sys.argv)
+
+    main_window = QtWidgets.QMainWindow()
+    main_widget = MainWidget(haar_cascade_filepath)
+    main_window.setCentralWidget(main_widget)
+    main_window.show()
+    sys.exit(app.exec_())
+
+
+if __name__ == '__main__':
+    script_dir = path.dirname(path.realpath(__file__))
+    cascade_filepath = path.join(script_dir,
+                                 'data',
+                                 'haarcascade_frontalface_default.xml')
+
+    cascade_filepath = path.abspath(cascade_filepath)
+    main(cascade_filepath)
