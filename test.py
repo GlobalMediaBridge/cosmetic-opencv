@@ -3,7 +3,7 @@
 
 import torch
 import os
-from flaskr.facemakeup.model import BiSeNet
+from model import BiSeNet
 import os.path as osp
 import numpy as np
 from PIL import Image
