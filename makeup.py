@@ -39,25 +39,25 @@ def color_to_BGR(color):
     return [b, g, r]
 
 
-def makeup(path, color):
-    bgr = color_to_BGR(color)
+def makeup(image, parsing, color):
+    '''
     filename = str(color) + '.jpg'
 
     # path : folder name(id)
     face = cv2.imread(os.path.join(path, 'face.jpg'))  # ori
     parsing = cv2.imread(os.path.join(path, 'parsing.jpg'))  # seg
-
+'''
     table = {
         'upper_lip': 12,
         'lower_lip': 13
     }
     parts = [table['upper_lip'], table['lower_lip']]  # [12, 13]
-    colors = [bgr, bgr]  # [b,g,r] 순서
+    colors = [color, color]  # [b,g,r] 순서
 
     # lip makeup
     for part, color in zip(parts, colors):
         # 한 부분, 한 색상(bgr)씩 들어감 => 2번 돌면 makeup 완성
-        makeup = lip(face, parsing, part, color)
-
+        makeup = lip(image, parsing, part, color)
+    return makeup
     # save result
-    cv2.imwrite(os.path.join(path, filename), makeup)
+    # cv2.imwrite(os.path.join(path, filename), makeup)

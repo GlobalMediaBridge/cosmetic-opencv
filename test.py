@@ -47,16 +47,16 @@ def vis_parsing_maps(im, parsing_anno, stride, save_im=False, save_path='vis_res
     # return vis_im
 
 # 학습시키기(학습시켜놓은걸로 평가하기)
-def evaluate(image, state_dict):
+def evaluate(image, net):
 
     # if not os.path.exists(respth):
     #     os.makedirs(respth)
 
-    n_classes = 19
-    net = BiSeNet(n_classes=n_classes) # BiSeNet으로 net이리는 인스턴스 생성됨. 인자로 19 넣어서 만듦.
-    net.cuda() # Tensor들을 GPU로 보내기
-    net.load_state_dict(state_dict)
-    net.eval()
+    # n_classes = 19
+    # net = BiSeNet(n_classes=n_classes) # BiSeNet으로 net이리는 인스턴스 생성됨. 인자로 19 넣어서 만듦.
+    # net.cuda() # Tensor들을 GPU로 보내기
+    # net.load_state_dict(state_dict)
+    # net.eval()
 
     to_tensor = transforms.Compose([
         transforms.ToTensor(),

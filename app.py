@@ -4,12 +4,14 @@ from os import path
 import cv2
 import numpy as np
 import torch
+import time
 
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5 import QtGui
 
-
+from makeup import makeup
+from model import BiSeNet
 from test import evaluate
 
 
@@ -35,10 +37,10 @@ class RecordVideo(QtCore.QObject):
 
 
 class FaceDetectionWidget(QtWidgets.QWidget):
-    def __init__(self, haar_cascade_filepath, state_dict, parent=None):
+    def __init__(self, haar_cascade_filepath, net, parent=None):
         super().__init__(parent)
         self.classifier = cv2.CascadeClassifier(haar_cascade_filepath)
-        self.state_dict = state_dict
+        self.net = net
         self.image = QtGui.QImage()
         self._red = (0, 0, 255)
         self._width = 2
@@ -58,30 +60,33 @@ class FaceDetectionWidget(QtWidgets.QWidget):
         return faces
 
     def image_data_slot(self, image_data):
+        start = time.time()
+        parsing = evaluate(image_data, self.net)
+        # parsing = cv2.resize(parsing, image_data.shape[0:2], interpolation=cv2.INTER_NEAREST)
 
-        parsing = evaluate(image_data, state_dict)
-        parsing = cv2.resize(parsing, image_data.shape[0:2], interpolation=cv2.INTER_NEAREST)
-        self.image = self.get_qimage(parsing)
+        color = [0, 0, 255]
+        face = makeup(image_data, parsing, color)
+        self.image = self.get_qimage(face)
         if self.image.size() != self.size():
             self.setFixedSize(self.image.size())
-        '''
-        faces = self.detect_faces(image_data)
-        for (x, y, w, h) in faces:
-            cv2.rectangle(image_data,
-                          (x, y),
-                          (x+w, y+h),
-                          self._red,
-                          self._width)
+        print("Time Required : ", time.time() - start)
+        
+        # faces = self.detect_faces(image_data)
+        # for (x, y, w, h) in faces:
+        #     cv2.rectangle(image_data,
+        #                   (x, y),
+        #                   (x+w, y+h),
+        #                   self._red,
+        #                   self._width)
 
-        self.image = self.get_qimage(image_data)
-        if self.image.size() != self.size():
-            self.setFixedSize(self.image.size())
-'''
+        # self.image = self.get_qimage(image_data)
+        # if self.image.size() != self.size():
+        #     self.setFixedSize(self.image.size())
+
         self.update()
 
     def get_qimage(self, image: np.ndarray):
-        # height, width, colors = image.shape
-        height, width = image.shape
+        height, width, colors = image.shape
         bytesPerLine = 3 * width
         QImage = QtGui.QImage
 
@@ -143,8 +148,14 @@ class MainWidget(QtWidgets.QWidget):
 def main(haar_cascade_filepath, state_dict):
     app = QtWidgets.QApplication(sys.argv)
 
+    n_classes = 19
+    net = BiSeNet(n_classes=n_classes) # BiSeNet으로 net이리는 인스턴스 생성됨. 인자로 19 넣어서 만듦.
+    net.cuda() # Tensor들을 GPU로 보내기
+    net.load_state_dict(state_dict)
+    net.eval()
+
     main_window = QtWidgets.QMainWindow()
-    main_widget = MainWidget(haar_cascade_filepath, state_dict)
+    main_widget = MainWidget(haar_cascade_filepath, net)
     main_window.setCentralWidget(main_widget)
     main_window.show()
     sys.exit(app.exec_())
