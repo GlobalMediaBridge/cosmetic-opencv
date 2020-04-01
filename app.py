@@ -80,7 +80,7 @@ class FaceDetectionWidget(QtWidgets.QWidget):
     def image_data_slot(self, image_data):
         start = time.time()
         parsing = evaluate(image_data, self.net)
-
+        print("Time Parsing : ", time.time() - start)
         color = [0, 0, 255]
         face = self.makeup(image_data, parsing, color)
         self.image = self.get_qimage(face)
@@ -88,6 +88,17 @@ class FaceDetectionWidget(QtWidgets.QWidget):
             self.setFixedSize(self.image.size())
         print("Time Required : ", time.time() - start)
         
+        # faces = self.detect_faces(image_data)
+        # for (x, y, w, h) in faces:
+        #     cv2.rectangle(image_data,
+        #                   (x, y),
+        #                   (x+w, y+h),
+        #                   self._red,
+        #                   self._width)
+
+        # self.image = self.get_qimage(image_data)
+        # if self.image.size() != self.size():
+        #     self.setFixedSize(self.image.size())
 
         self.update()
 
