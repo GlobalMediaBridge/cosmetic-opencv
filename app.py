@@ -10,7 +10,6 @@ from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5 import QtGui
 
-from makeup import makeup
 from model import BiSeNet
 from test import evaluate
 
@@ -59,29 +58,36 @@ class FaceDetectionWidget(QtWidgets.QWidget):
 
         return faces
 
+    def makeup(self, image, parsing, color):
+        b, g, r = color
+
+        tar_color = np.zeros_like(image)
+        tar_color[:, :, 0] = b
+        tar_color[:, :, 1] = g
+        tar_color[:, :, 2] = r
+        
+        image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        tar_hsv = cv2.cvtColor(tar_color, cv2.COLOR_BGR2HSV)
+        
+        image_hsv[:, :, 0:2] = tar_hsv[:, :, 0:2]
+        
+        masked = cv2.cvtColor(image_hsv, cv2.COLOR_HSV2BGR)
+
+        image[parsing == 12] = masked[parsing == 12]
+        image[parsing == 13] = masked[parsing == 13]
+        return image
+
     def image_data_slot(self, image_data):
         start = time.time()
         parsing = evaluate(image_data, self.net)
-        # parsing = cv2.resize(parsing, image_data.shape[0:2], interpolation=cv2.INTER_NEAREST)
 
         color = [0, 0, 255]
-        face = makeup(image_data, parsing, color)
+        face = self.makeup(image_data, parsing, color)
         self.image = self.get_qimage(face)
         if self.image.size() != self.size():
             self.setFixedSize(self.image.size())
         print("Time Required : ", time.time() - start)
         
-        # faces = self.detect_faces(image_data)
-        # for (x, y, w, h) in faces:
-        #     cv2.rectangle(image_data,
-        #                   (x, y),
-        #                   (x+w, y+h),
-        #                   self._red,
-        #                   self._width)
-
-        # self.image = self.get_qimage(image_data)
-        # if self.image.size() != self.size():
-        #     self.setFixedSize(self.image.size())
 
         self.update()
 
