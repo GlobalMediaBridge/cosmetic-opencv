@@ -47,11 +47,10 @@ class FaceDetectionWidget(QtWidgets.QWidget):
     
     def initUI(self, main_widget):
         self.main_widget = main_widget
-        self.centralwidget = main_widget.centralwidget
         self.face = main_widget.face
         self.pink = main_widget.pink
         self.cosmetic = main_widget.cosmetic
-        self.code = main_widget.code
+        self.main_window = main_widget.main_window
 
 
     def detect_faces(self, image: np.ndarray):
@@ -97,27 +96,22 @@ class FaceDetectionWidget(QtWidgets.QWidget):
         color = [125, 93, 253]
         self.isDetected = len(image_data[parsing==12]) > 0
         if(self.isDetected):
-            print('감지')
             self.face.setStyleSheet("image: url(:/newPrefix/person_1.png);")
             self.pink.setStyleSheet("")
         else:
-            print('실패')
             self.face.setStyleSheet("image: url(:/newPrefix/person_0.png);")
             self.pink.setStyleSheet("image: url(:/newPrefix/pink.png);")
         
-        if(self.main_widget.code == ''):
-            print(self.main_widget.code)
+        if(self.main_window.code == ''):
+            print(self.main_window.code)
             self.cosmetic.setStyleSheet("image: url(:/newPrefix/cosmetic_0.png);")
         else:
-            print(self.main_widget.code)
+            print(self.main_window.code)
             self.cosmetic.setStyleSheet("image: url(:/newPrefix/cosmetic_1.png);")
 
 
         face = self.makeup(image_data, parsing, color)
         self.image = self.get_qimage(face)
-        # self.camera = QtWidgets.QLabel(self.centralwidget)
-        # self.camera.setGeometry(QtCore.QRect(0, 0, 1440, 1080))
-        # self.camera.setPixmap(QtGui.QPixmap(self.image))
         if self.image.size() != self.size():
             self.setFixedSize(self.image.size())
         print("Time Required : ", time.time() - start)
@@ -149,12 +143,11 @@ class FaceDetectionWidget(QtWidgets.QWidget):
 class MainWidget(QtWidgets.QWidget):
     def __init__(self, haarcascade_filepath, state_dict, main_window, parent=None):
         super().__init__(parent)
-        self.reading = False
-        self.code = ''
+        self.main_window = main_window
 
         fp = haarcascade_filepath
         self.face_detection_widget = FaceDetectionWidget(fp, state_dict)
-        
+
         self.initUI(main_window)
         self.face_detection_widget.initUI(self)
 
@@ -175,71 +168,80 @@ class MainWidget(QtWidgets.QWidget):
         # self.setLayout(layout)
 
     def initUI(self, MainWindow):
-        MainWindow.setObjectName("MainWindow")
-        MainWindow.setEnabled(True)
-        MainWindow.resize(1920, 1080)
 
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
-
-        MainWindow.setSizePolicy(sizePolicy)
-        MainWindow.setMaximumSize(QtCore.QSize(1920, 1080))
-        font = QtGui.QFont()
-        font.setFamily("NanumBarunGothic")
-        MainWindow.setFont(font) 
-
-        self.centralwidget = QtWidgets.QWidget(MainWindow)
-        self.centralwidget.setObjectName("centralwidget")
+        self.setObjectName("centralwidget")
 
         self.layout = QtWidgets.QHBoxLayout()  
         self.layout.setContentsMargins(0,0,0,0)
         self.layout.addWidget(self.face_detection_widget)  
         self.layout.addStretch(1)
-        self.centralwidget.setLayout(self.layout) 
+        self.setLayout(self.layout) 
 
-        self.back_1 = QtWidgets.QLabel(self.centralwidget)
+        self.back_1 = QtWidgets.QLabel(self)
         self.back_1.setGeometry(QtCore.QRect(40, 861, 180, 180))
         self.back_1.setStyleSheet("image: url(:/newPrefix/back.png);")
         self.back_1.setText("")
         self.back_1.setObjectName("back_1")
-        self.back_2 = QtWidgets.QLabel(self.centralwidget)
+
+        self.back_2 = QtWidgets.QLabel(self)
         self.back_2.setGeometry(QtCore.QRect(250, 861, 180, 180))
         self.back_2.setStyleSheet("image: url(:/newPrefix/back.png);")
         self.back_2.setText("")
         self.back_2.setObjectName("back_2")
-        self.face = QtWidgets.QLabel(self.centralwidget)
+
+        self.face = QtWidgets.QLabel(self)
         self.face.setGeometry(QtCore.QRect(40, 861, 180, 180))
         self.face.setStyleSheet("image: url(:/newPrefix/person_0.png);")
         self.face.setText("")
         self.face.setObjectName("face")
-        self.cosmetic = QtWidgets.QLabel(self.centralwidget)
+
+        self.cosmetic = QtWidgets.QLabel(self)
         self.cosmetic.setGeometry(QtCore.QRect(250, 861, 180, 180))
         self.cosmetic.setStyleSheet("image: url(:/newPrefix/cosmetic_0.png);")
         self.cosmetic.setText("")
         self.cosmetic.setObjectName("cosmetic")
 
-        self.pink = QtWidgets.QLabel(self.centralwidget)
+        self.pink = QtWidgets.QLabel(self)
         self.pink.setGeometry(QtCore.QRect(0, 0, 1440, 1080))
         self.pink.setStyleSheet("image: url(:/newPrefix/pink.png);")
         self.pink.setText("")
         self.pink.setObjectName("pink")
 
-        self.barcode = QtWidgets.QLabel(self.centralwidget)
+        self.barcode = QtWidgets.QLabel(self)
         self.barcode.setGeometry(QtCore.QRect(1440, 0, 480, 1080))
         self.barcode.setStyleSheet("image: url(:/newPrefix/none.png);")
         self.barcode.setText("")
         self.barcode.setObjectName("barcode")
         
-        MainWindow.setCentralWidget(self.centralwidget)
-        self.retranslateUi(MainWindow)
-        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+        #self.retranslateUi(MainWindow)
+        #QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate("MainWindow", "MainWindow"))
 
+
+class MainWindow(QtWidgets.QMainWindow):
+    def __init__(self, parent=None):
+        QtWidgets.QMainWindow.__init__(self, parent=parent)
+        self.initWindow()
+        self.reading = False
+        self.code = ''
+        
+
+    def initWindow(self):
+        self.setObjectName("MainWindow")
+        self.setEnabled(True)
+        self.resize(1920, 1080)
+
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.sizePolicy().hasHeightForWidth())
+
+        self.setSizePolicy(sizePolicy)
+        self.setMaximumSize(QtCore.QSize(1920, 1080))
+        
     def keyPressEvent(self, e):
         if self.reading == False:
             self.code = ''
@@ -248,7 +250,6 @@ class MainWidget(QtWidgets.QWidget):
         else:
             self.code += chr(e.key())
             self.reading = True
-        print(self.code)
 
 
 def main(haar_cascade_filepath, state_dict):
@@ -260,12 +261,12 @@ def main(haar_cascade_filepath, state_dict):
     net.load_state_dict(state_dict)
     net.eval()
 
-    main_window = QtWidgets.QMainWindow()
+    main_window = MainWindow()
+
     main_widget = MainWidget(haar_cascade_filepath, net, main_window)
-    #main_window.setCentralWidget(main_widget)
+    main_window.setCentralWidget(main_widget)
     main_window.show()
     sys.exit(app.exec_())
-
 
 if __name__ == '__main__':
     script_dir = path.dirname(path.realpath(__file__))
