@@ -1,0 +1,15 @@
+<RCC>
+  <qresource prefix="newPrefix">
+    <file>pink.png</file>
+    <file>none.png</file>
+    <file>back.png</file>
+    <file>detection.png</file>
+    <file>camera.png</file>
+    <file>cosmetic_info.png</file>
+    <file>barcode.png</file>
+    <file>cosmetic_1.png</file>
+    <file>person_0.png</file>
+    <file>cosmetic_0.png</file>
+    <file>person_1.png</file>
+  </qresource>
+</RCC>

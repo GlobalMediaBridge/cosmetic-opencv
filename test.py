@@ -49,36 +49,17 @@ def vis_parsing_maps(im, parsing_anno, stride, save_im=False, save_path='vis_res
 # 학습시키기(학습시켜놓은걸로 평가하기)
 def evaluate(image, net):
 
-    # if not os.path.exists(respth):
-    #     os.makedirs(respth)
-
-    # n_classes = 19
-    # net = BiSeNet(n_classes=n_classes) # BiSeNet으로 net이리는 인스턴스 생성됨. 인자로 19 넣어서 만듦.
-    # net.cuda() # Tensor들을 GPU로 보내기
-    # net.load_state_dict(state_dict)
-    # net.eval()
-
     to_tensor = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
     ])
 
     with torch.no_grad():
-        # img = Image.open(image_path)
-        # image = img.resize((512, 512), Image.BILINEAR)
-        # img = to_tensor(image)
-        # img = torch.unsqueeze(img, 0)
-        # img = img.cuda()
-        # out = net(img)[0]
         img = to_tensor(image)
         img = torch.unsqueeze(img, 0)
         img = img.cuda()
         out = net(img)[0]
         parsing = out.squeeze(0).cpu().numpy().argmax(0)
-        # print(np.shape(img),np.shape(parsing),parsing) => torch.Size([1,3,512, 512]) / (512, 512) / [0 0 0...0 0 0]~[17 17 17... 17 17 17]
-        # print(np.unique(parsing)) 
-
-        # vis_parsing_maps(image, parsing, stride=1, save_im=False, save_path=osp.join(respth, dspth))
         return parsing
 
 if __name__ == "__main__":
