@@ -44,6 +44,7 @@ class FaceDetectionWidget(QtWidgets.QWidget):
         self.image = QtGui.QImage()
         self._width = 2
         self._min_size = (30, 30)
+        self.timer = 0
     
     def initUI(self, main_widget):
         self.main_widget = main_widget
@@ -51,6 +52,7 @@ class FaceDetectionWidget(QtWidgets.QWidget):
         self.pink = main_widget.pink
         self.cosmetic = main_widget.cosmetic
         self.main_window = main_widget.main_window
+        self.barcode = main_widget.barcode
 
 
     def detect_faces(self, image: np.ndarray):
@@ -93,24 +95,31 @@ class FaceDetectionWidget(QtWidgets.QWidget):
     def image_data_slot(self, image_data):
         start = time.time()
         parsing = evaluate(image_data, self.net)
-        color = [125, 93, 253]
         self.isDetected = len(image_data[parsing==12]) > 0
         if(self.isDetected):
+            self.timer = 0
             self.face.setStyleSheet("image: url(:/newPrefix/person_1.png);")
             self.pink.setStyleSheet("")
         else:
+            if self.timer == 0:
+                self.timer = time.time() + 3
+            elif self.timer <= time.time():
+                self.main_window.code = ''
             self.face.setStyleSheet("image: url(:/newPrefix/person_0.png);")
             self.pink.setStyleSheet("image: url(:/newPrefix/pink.png);")
-        
+                
         if(self.main_window.code == ''):
-            print(self.main_window.code)
+            face = image_data
             self.cosmetic.setStyleSheet("image: url(:/newPrefix/cosmetic_0.png);")
+            self.barcode.setStyleSheet("image: url(:/newPrefix/none.png);")
         else:
             print(self.main_window.code)
+            color = [125, 93, 253]
+            face = self.makeup(image_data, parsing, color)
             self.cosmetic.setStyleSheet("image: url(:/newPrefix/cosmetic_1.png);")
+            self.barcode.setStyleSheet(f"image: url(:/newPrefix/{self.main_window.code}.png);")
 
 
-        face = self.makeup(image_data, parsing, color)
         self.image = self.get_qimage(face)
         if self.image.size() != self.size():
             self.setFixedSize(self.image.size())
